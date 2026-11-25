@@ -100,40 +100,55 @@ function topnav() {
     toggle("topnav", "mobile");
 }
 
-function parseNav(obj) {
-    for(i = 0; i < 14; i++) {
-        if(i == 2)
-            continue;
-        var l = document.getElementById("nav"+i);
-        if(null == l)
-            continue
-        if(12 == i) {
-            if(obj.cst_lnk.length > 0) {
-                l.href = obj.cst_lnk
-                l.innerHTML = obj.cst_lnk_txt
-                l.classList.remove("hide");
-            }
-            continue;
-        }
-        if(window.location.pathname == "/" + l.href.substring(0, l.href.indexOf("?")).split('/').pop()) {
-            if((i != 8 )&& (i != 9))
-                l.classList.add("active");
-        }
+/**
+ * Menu: the entries are defined once in includes/nav.html and are visible by
+ * default. parseNav() only applies the protection state from /api/generic:
+ *   data-prot: bit in sys.protectionMask (PROT_MASK_*), hidden while locked
+ *   data-auth: "login" / "logout", shown only if an admin password is set
+ * Each page calls parseNav() with the "generic" part of its own API answer.
+ * If that did not happen (request failed), /api/generic is fetched here.
+ */
+var navDone = false;
 
-        if(obj["menu_protEn"]) {
-            if(obj["menu_prot"]) {
-                if(0 == i)
-                    l.classList.remove("hide");
-                else if(i > 2) {
-                    if(((obj["menu_mask"] >> (i-2)) & 0x01) == 0x00)
-                        l.classList.remove("hide");
-                }
-            } else if(0 != i)
-                l.classList.remove("hide");
-        } else if(i > 1)
-            l.classList.remove("hide");
+function parseNav(obj) {
+    if((null == obj) || (typeof obj != "object"))
+        return;
+    navDone = true;
+    var locked = (true == obj.menu_protEn) && (true == obj.menu_prot);
+    for(var l of document.querySelectorAll("#topnav a[data-prot]")) {
+        var bit = parseInt(l.dataset.prot);
+        l.classList.toggle("hide", locked && (((obj.menu_mask >> bit) & 0x01) == 0x01));
+    }
+    for(var l of document.querySelectorAll("#topnav a[data-auth]")) {
+        var show = (true == obj.menu_protEn) && ((l.dataset.auth == "login") == locked);
+        l.classList.toggle("hide", !show);
+    }
+    var l = document.getElementById("navCstLnk");
+    if((null != l) && (typeof obj.cst_lnk == "string") && (obj.cst_lnk.length > 0)) {
+        l.href = obj.cst_lnk;
+        l.innerHTML = obj.cst_lnk_txt;
+        l.classList.remove("hide");
     }
 }
+
+function markActiveNav() {
+    for(var l of document.querySelectorAll("#topnav a[data-path]"))
+        l.classList.toggle("active", window.location.pathname == l.dataset.path);
+}
+
+function navFallback(retry) {
+    if(navDone || (retry <= 0))
+        return;
+    getAjax("/api/generic", parseNav);
+    setTimeout(() => { navFallback(retry - 1) }, 3000);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    if(null == document.getElementById("topnav"))
+        return;
+    markActiveNav();
+    setTimeout(() => { navFallback(3) }, 3000);
+});
 
 function parseVersion(obj) {
     document.getElementById("version").appendChild(
@@ -198,10 +213,20 @@ function getAjax(url, ptr, method="GET", json=null) {
     }
     function p() {
         if(xhr.readyState == 4) {
-            if(null != xhr.responseText) {
-                if(null != ptr)
-                    ptr(JSON.parse(xhr.responseText));
+            if((200 != xhr.status) || (null == ptr))
+                return;
+            var obj = null;
+            try {
+                obj = JSON.parse(xhr.responseText);
+            } catch(e) {
+                console.warn("getAjax " + url + ": invalid JSON");
+                return;
             }
+            if(null == obj) { // ESP answers 'null' if its JSON buffer could not be allocated
+                console.warn("getAjax " + url + ": empty answer");
+                return;
+            }
+            ptr(obj);
         }
     }
 }
