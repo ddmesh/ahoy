@@ -187,7 +187,7 @@ function toggle(id, cl="hide") {
         e.classList.remove(cl);
 }
 
-function getAjax(url, ptr, method="GET", json=null) {
+function getAjax(url, ptr, method="GET", json=null, retry=3) {
     var xhr = new XMLHttpRequest();
     if(xhr != null) {
        xhr.open(method, url, true);
@@ -198,6 +198,11 @@ function getAjax(url, ptr, method="GET", json=null) {
     }
     function p() {
         if(xhr.readyState == 4) {
+            if(503 == xhr.status) { // ESP low on memory, request was refused
+                if(("GET" == method) && (retry > 0))
+                    setTimeout(() => { getAjax(url, ptr, method, json, retry - 1) }, 1000);
+                return;
+            }
             if(null != xhr.responseText) {
                 if(null != ptr)
                     ptr(JSON.parse(xhr.responseText));

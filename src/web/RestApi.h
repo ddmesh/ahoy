@@ -21,6 +21,16 @@
 #define F(sl) (sl)
 #endif
 
+// free heap which must remain after the JSON buffer of an API answer is
+// allocated (response object, headers, TCP send buffers)
+#define API_HEAP_RESERVE    2048
+// JSON buffer size of API answers without a specific size
+#if defined(ESP32)
+    #define API_JSON_SIZE_DEFAULT   8000
+#else
+    #define API_JSON_SIZE_DEFAULT   6000
+#endif
+
 template<class HMSYSTEM>
 class RestApi {
     public:
@@ -84,14 +94,21 @@ class RestApi {
                 mHeapFrag = 0;
             #endif
 
-            #if defined(ESP32)
-            AsyncJsonResponse* response = new AsyncJsonResponse(false, 8000);
-            #else
-            AsyncJsonResponse* response = new AsyncJsonResponse(false, 6000);
-            #endif
+            String path = request->url().substring(5);
+
+            size_t bufSize = getApiBufSize(path);
+            // a failing 'new' reboots the ESP (ESP8266: OOM abort, ESP32:
+            // uncaught std::bad_alloc), ArduinoJson only answers 'null'.
+            // Therefore refuse the request while the heap is low. The web UI
+            // retries GET requests on 503.
+            if((mHeapFreeBlk < bufSize) || (mHeapFree < (bufSize + API_HEAP_RESERVE))) {
+                DPRINTLN(DBG_WARN, F("API: low memory, request refused"));
+                request->send(503, F("application/json"), F("{\"error\":\"low memory\"}"));
+                return;
+            }
+            AsyncJsonResponse* response = new AsyncJsonResponse(false, bufSize);
             JsonObject root = response->getRoot();
 
-            String path = request->url().substring(5);
             if(path == "html/system")         getHtmlSystem(request, root);
             else if(path == "html/logout")    getHtmlLogout(request, root);
             else if(path == "html/reboot")    getHtmlReboot(request, root);
@@ -135,6 +152,16 @@ class RestApi {
             response->addHeader("Access-Control-Allow-Headers", "content-type");
             response->setLength();
             request->send(response);
+        }
+
+        // JSON buffer size of a GET request. Small answers get a small buffer
+        // to keep the heap free, values: host measured upper bound + margin
+        size_t getApiBufSize(const String &path) {
+            if(path == "generic")
+                return 1024;
+            if(path == "index")
+                return 1536 + MAX_NUM_INVERTERS * 320;
+            return API_JSON_SIZE_DEFAULT;
         }
 
         void onApiPost(AsyncWebServerRequest *request) {
