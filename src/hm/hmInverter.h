@@ -813,8 +813,8 @@ class Inverter {
         }
 
         String getGridProfile(void) {
-            char buf[MAX_GRID_LENGTH * 3];
-            memset(buf, 0, MAX_GRID_LENGTH);
+            char buf[MAX_GRID_LENGTH * 3 + 1];
+            memset(buf, 0, sizeof(buf));
             for(uint8_t i = 0; i < mGridLen; i++) {
                 snprintf(&buf[i*3], 4, "%02X ", mGridProfile[i]);
             }
