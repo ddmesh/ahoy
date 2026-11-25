@@ -11,6 +11,7 @@
 #include "../hm/hmSystem.h"
 #include "../utils/helper.h"
 #include "lang.h"
+#include <new>
 #include "AsyncJson.h"
 #include "ESPAsyncWebServer.h"
 
@@ -24,6 +25,8 @@
 // free heap which must remain after the JSON buffer of an API answer is
 // allocated (response object, headers, TCP send buffers)
 #define API_HEAP_RESERVE    2048
+// max. length of a POST body (it is parsed into a 1000 byte JSON document)
+#define API_POST_MAX_LEN    2048
 // JSON buffer size of API answers without a specific size
 #if defined(ESP32)
     #define API_JSON_SIZE_DEFAULT   8000
@@ -267,14 +270,29 @@ class RestApi {
             if(0 == index) {
                 if(nullptr != mTmpBuf)
                     delete[] mTmpBuf;
-                mTmpBuf = new uint8_t[total+1];
-                mTmpSize = total;
+                mTmpBuf  = nullptr;
+                mTmpSize = 0;
+                // the size comes from the request and a failing 'new' reboots
+                // the ESP, therefore limit the size and do not throw / abort
+                if(total <= API_POST_MAX_LEN)
+                    mTmpBuf = new (std::nothrow) uint8_t[total+1];
+                if(nullptr != mTmpBuf)
+                    mTmpSize = total;
             }
-            if(mTmpSize >= (len + index))
+            if((nullptr != mTmpBuf) && (mTmpSize >= (len + index)))
                 memcpy(&mTmpBuf[index], data, len);
 
             if((len + index) != total)
                 return; // not last frame - nothing to do
+
+            if(nullptr == mTmpBuf) {
+                DPRINTLN(DBG_WARN, F("API: POST body too large or low memory"));
+                if(total > API_POST_MAX_LEN)
+                    request->send(413, F("application/json"), F("{\"success\":false,\"error\":\"too large\"}"));
+                else
+                    request->send(503, F("application/json"), F("{\"success\":false,\"error\":\"low memory\"}"));
+                return;
+            }
 
             DynamicJsonDocument json(1000);
 
