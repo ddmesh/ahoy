@@ -35,6 +35,9 @@
 #if defined(ENABLE_HISTORY)
 #include "plugins/history.h"
 #endif /*ENABLE_HISTORY*/
+#if defined(ENABLE_SUNSPEC)
+#include "plugins/SunSpec/SunSpec.h"
+#endif /*ENABLE_SUNSPEC*/
 #include "web/web.h"
 #include "hm/Communication.h"
 #if defined(ETHERNET)
@@ -74,6 +77,9 @@ typedef HistoryData<HmSystemType> HistoryType;
 #if defined (ENABLE_SIMULATOR)
 typedef Simulator<HmSystemType> SimulatorType;
 #endif /*ENABLE_SIMULATOR*/
+#if defined(ENABLE_SUNSPEC)
+typedef SunSpec<HmSystemType> SunSpecType;
+#endif /*ENABLE_SUNSPEC*/
 
 // PLUGINS
 #if defined(PLUGIN_DISPLAY)
@@ -500,6 +506,9 @@ class app : public IApp, public ah::Scheduler {
         #if defined(ENABLE_HISTORY)
         HistoryType mHistory;
         #endif /*ENABLE_HISTORY*/
+        #if defined(ENABLE_SUNSPEC)
+        SunSpecType mSunSpec;
+        #endif /*ENABLE_SUNSPEC*/
 
         #if defined(ENABLE_SIMULATOR)
         SimulatorType mSimulator;

@@ -561,6 +561,10 @@ class RestApi {
                 obj2[F("channels")] = iv->channels;
                 obj2[F("freq")]     = iv->config->frequency;
                 obj2[F("disnightcom")] = (bool)iv->config->disNightCom;
+                #if defined(ENABLE_SUNSPEC)
+                obj2[F("sunspec")]  = (bool)iv->config->sunspec;
+                obj2[F("ss_phase")] = iv->config->ssPhase;
+                #endif
                 if(0xff == iv->config->powerLevel) {
                     if((IV_HMT == iv->ivGen) || (IV_HMS == iv->ivGen))
                         obj2[F("pa")] = 30; // 20dBm
@@ -1006,7 +1010,21 @@ class RestApi {
             getSerial(obj.createNestedObject(F("serial")));
             getStaticIp(obj.createNestedObject(F("static_ip")));
             getDisplay(obj.createNestedObject(F("display")));
+            #if defined(ENABLE_SUNSPEC)
+            getSunSpec(obj.createNestedObject(F("sunspec")));
+            #endif
         }
+
+        #if defined(ENABLE_SUNSPEC)
+        void getSunSpec(JsonObject obj) {
+            obj[F("en")]    = (bool)mConfig->plugin.sunspec.enabled;
+            obj[F("port")]  = mConfig->plugin.sunspec.port;
+            obj[F("mode")]  = mConfig->plugin.sunspec.mode;
+            obj[F("unit")]  = mConfig->plugin.sunspec.unitId;
+            obj[F("maxCl")] = mConfig->plugin.sunspec.maxClients;
+            obj[F("allow")] = String(mConfig->plugin.sunspec.allow);
+        }
+        #endif
 
         void getNetworks(JsonObject obj) {
             obj[F("success")] = mApp->getAvailNetworks(obj);
@@ -1207,6 +1225,14 @@ class RestApi {
                 iv->config->frequency   = jsonIn[F("freq")];
                 iv->config->powerLevel  = jsonIn[F("pa")];
                 iv->config->disNightCom = jsonIn[F("disnightcom")];
+                #if defined(ENABLE_SUNSPEC)
+                if(jsonIn.containsKey(F("sunspec")))
+                    iv->config->sunspec = jsonIn[F("sunspec")];
+                if(jsonIn.containsKey(F("ss_phase"))) {
+                    uint8_t ph = jsonIn[F("ss_phase")];
+                    iv->config->ssPhase = (ph > 2) ? 0 : ph;
+                }
+                #endif
                 mApp->saveSettings(false); // without reboot
             } else {
                 jsonOut[F("error")] = F("ERR_UNKNOWN_CMD");

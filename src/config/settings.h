@@ -178,6 +178,10 @@ typedef struct {
     uint8_t frequency;
     uint8_t powerLevel;
     bool disNightCom;  // disable night communication
+    #if defined(ENABLE_SUNSPEC)
+    bool sunspec;      // expose inverter via SunSpec / Modbus TCP
+    uint8_t ssPhase;   // grid phase of a single phase inverter: 0: L1, 1: L2, 2: L3
+    #endif
 } cfgIv_t;
 
 typedef struct {
@@ -213,10 +217,25 @@ typedef struct {
     uint8_t pirPin;
 } display_t;
 
+#if defined(ENABLE_SUNSPEC)
+#define SUNSPEC_ALLOW_LEN   80
+typedef struct {
+    bool enabled;
+    uint16_t port;
+    uint8_t mode;       // 0: combined (system total), 1: separate (one device per inverter)
+    uint8_t unitId;     // unit id of combined device
+    uint8_t maxClients;
+    char allow[SUNSPEC_ALLOW_LEN]; // comma separated IPs / networks, empty: all
+} cfgSunSpec_t;
+#endif
+
 typedef struct {
     display_t display;
     char customLink[MAX_CUSTOM_LINK_LEN];
     char customLinkText[MAX_CUSTOM_LINK_TEXT_LEN];
+    #if defined(ENABLE_SUNSPEC)
+    cfgSunSpec_t sunspec;
+    #endif
 } plugins_t;
 
 typedef struct {
@@ -487,6 +506,10 @@ class settings {
                 mCfg.inst.iv[i].powerLevel  = 0xff; // impossible high value
                 mCfg.inst.iv[i].frequency   = 0x12; // 863MHz (minimum allowed frequency)
                 mCfg.inst.iv[i].disNightCom = false;
+                #if defined(ENABLE_SUNSPEC)
+                mCfg.inst.iv[i].sunspec     = true;
+                mCfg.inst.iv[i].ssPhase     = 0;
+                #endif
             }
 
             mCfg.led.led[0]      = DEF_LED0;
@@ -508,6 +531,15 @@ class settings {
             mCfg.plugin.display.disp_busy  = DEF_PIN_OFF;
             mCfg.plugin.display.disp_dc    = DEF_PIN_OFF;
             mCfg.plugin.display.pirPin     = DEF_PIN_OFF;
+
+            #if defined(ENABLE_SUNSPEC)
+            mCfg.plugin.sunspec.enabled    = false;
+            mCfg.plugin.sunspec.port       = 502;
+            mCfg.plugin.sunspec.mode       = 0;   // combined
+            mCfg.plugin.sunspec.unitId     = 126;
+            mCfg.plugin.sunspec.maxClients = 2;
+            mCfg.plugin.sunspec.allow[0]   = '\0';
+            #endif
         }
 
         void loadAddedDefaults() {
@@ -779,6 +811,15 @@ class settings {
                 disp[F("pirPin")] = mCfg.plugin.display.pirPin;
                 obj[F("cst_lnk")] = mCfg.plugin.customLink;
                 obj[F("cst_lnk_txt")] = mCfg.plugin.customLinkText;
+                #if defined(ENABLE_SUNSPEC)
+                JsonObject ss = obj.createNestedObject("sunspec");
+                ss[F("en")]    = (bool)mCfg.plugin.sunspec.enabled;
+                ss[F("port")]  = mCfg.plugin.sunspec.port;
+                ss[F("mode")]  = mCfg.plugin.sunspec.mode;
+                ss[F("unit")]  = mCfg.plugin.sunspec.unitId;
+                ss[F("maxCl")] = mCfg.plugin.sunspec.maxClients;
+                ss[F("allow")] = mCfg.plugin.sunspec.allow;
+                #endif
             } else {
                 JsonObject disp = obj["disp"];
                 getVal<uint8_t>(disp, F("type"), &mCfg.plugin.display.type);
@@ -799,6 +840,17 @@ class settings {
                 getVal<uint8_t>(disp, F("pirPin"), &mCfg.plugin.display.pirPin);
                 getChar(obj, F("cst_lnk"), mCfg.plugin.customLink, MAX_CUSTOM_LINK_LEN);
                 getChar(obj, F("cst_lnk_txt"), mCfg.plugin.customLinkText, MAX_CUSTOM_LINK_TEXT_LEN);
+                #if defined(ENABLE_SUNSPEC)
+                if(obj.containsKey(F("sunspec"))) {
+                    JsonObject ss = obj[F("sunspec")];
+                    getVal<bool>(ss, F("en"), &mCfg.plugin.sunspec.enabled);
+                    getVal<uint16_t>(ss, F("port"), &mCfg.plugin.sunspec.port);
+                    getVal<uint8_t>(ss, F("mode"), &mCfg.plugin.sunspec.mode);
+                    getVal<uint8_t>(ss, F("unit"), &mCfg.plugin.sunspec.unitId);
+                    getVal<uint8_t>(ss, F("maxCl"), &mCfg.plugin.sunspec.maxClients);
+                    getChar(ss, F("allow"), mCfg.plugin.sunspec.allow, SUNSPEC_ALLOW_LEN);
+                }
+                #endif
             }
         }
 
@@ -846,6 +898,10 @@ class settings {
                 obj[F("freq")] = cfg->frequency;
                 obj[F("pa")]   = cfg->powerLevel;
                 obj[F("dis")]  = cfg->disNightCom;
+                #if defined(ENABLE_SUNSPEC)
+                obj[F("ss")]   = (bool)cfg->sunspec;
+                obj[F("ssph")] = cfg->ssPhase;
+                #endif
                 for(uint8_t i = 0; i < 6; i++) {
                     obj[F("yield")][i]  = cfg->yieldCor[i];
                     obj[F("pwr")][i]    = cfg->chMaxPwr[i];
@@ -858,6 +914,10 @@ class settings {
                 getVal<uint8_t>(obj, F("freq"), &cfg->frequency);
                 getVal<uint8_t>(obj, F("pa"), &cfg->powerLevel);
                 getVal<bool>(obj, F("dis"), &cfg->disNightCom);
+                #if defined(ENABLE_SUNSPEC)
+                getVal<bool>(obj, F("ss"), &cfg->sunspec);
+                getVal<uint8_t>(obj, F("ssph"), &cfg->ssPhase);
+                #endif
                 uint8_t size = 4;
                 if(obj.containsKey(F("pwr")))
                     size = obj[F("pwr")].size();

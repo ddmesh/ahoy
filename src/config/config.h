@@ -56,6 +56,12 @@
 // to enable the syslog logging (will disable web-serial)
 //#define ENABLE_SYSLOG
 
+// SunSpec (read only) via Modbus TCP, see doc/sunspec.md
+//#define ENABLE_SUNSPEC
+// optional SunSpec models, not needed for basic data (power, voltage, current)
+#define SUNSPEC_MODEL_120   // nameplate: max. power of the inverter(s)
+#define SUNSPEC_MODEL_160   // MPPT: values of each PV input (separate mode only)
+
 
 
 //-------------------------------------

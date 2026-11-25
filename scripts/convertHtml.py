@@ -37,6 +37,18 @@ def parseDefinesH():
             if match:
                 build_flags += [match.group(1)]
 
+    # optional modules which can be enabled by an (uncommented) #define
+    # in config/config.h or config/config_override.h
+    optional = ["ENABLE_SUNSPEC"]
+    for path in ["config/config.h", "config/config_override.h"]:
+        if not os.path.isfile(path):
+            continue
+        with open(path, "r") as f:
+            for line in f:
+                match = re.match(pattern, line)
+                if match and match.group(1) in optional and match.group(1) not in build_flags:
+                    build_flags += [match.group(1)]
+
 
 def get_build_flags():
     getFlagsOfEnv("env:" + env['PIOENV'])

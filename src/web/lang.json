@@ -694,6 +694,56 @@
                     "de": "Sendeleistung"
                 },
                 {
+                    "token": "SUNSPEC_ENABLE",
+                    "en": "Enable SunSpec Modbus TCP server",
+                    "de": "SunSpec Modbus TCP Server aktivieren"
+                },
+                {
+                    "token": "SUNSPEC_MODE",
+                    "en": "Mode",
+                    "de": "Modus"
+                },
+                {
+                    "token": "SUNSPEC_MODE_COMBINED",
+                    "en": "Combined (one system with total values)",
+                    "de": "Kombiniert (eine Anlage mit Summenwerten)"
+                },
+                {
+                    "token": "SUNSPEC_MODE_SEPARATE",
+                    "en": "Separate (one device per inverter)",
+                    "de": "Getrennt (ein Ger&auml;t pro Wechselrichter)"
+                },
+                {
+                    "token": "SUNSPEC_UNIT_ID",
+                    "en": "Unit ID (combined mode)",
+                    "de": "Unit ID (kombinierter Modus)"
+                },
+                {
+                    "token": "SUNSPEC_MAX_CLIENTS",
+                    "en": "Max. connections (1-4)",
+                    "de": "Max. Verbindungen (1-4)"
+                },
+                {
+                    "token": "SUNSPEC_ALLOW",
+                    "en": "Allowed clients (IP or network, comma separated, empty = all)",
+                    "de": "Erlaubte Clients (IP oder Netz, kommagetrennt, leer = alle)"
+                },
+                {
+                    "token": "SUNSPEC_NOTE",
+                    "en": "Read only. Separate mode: unit ID = inverter number + 1. Changes require a reboot.",
+                    "de": "Nur lesend. Getrennter Modus: Unit ID = Wechselrichter-Nummer + 1. &Auml;nderungen erfordern einen Neustart."
+                },
+                {
+                    "token": "INV_SUNSPEC_PHASE",
+                    "en": "Grid phase (SunSpec combined mode, single phase inverters only)",
+                    "de": "Netzphase (SunSpec kombinierter Modus, nur einphasige Wechselrichter)"
+                },
+                {
+                    "token": "INV_SUNSPEC",
+                    "en": "Provide via SunSpec / Modbus TCP",
+                    "de": "&Uuml;ber SunSpec / Modbus TCP bereitstellen"
+                },
+                {
                     "token": "INV_PAUSE_DURING_NIGHT",
                     "en": "Pause communication during night (lat. and lon. need to be set)",
                     "de": "Kommunikation w&auml;hrend der Nacht pausieren (Breiten- und L&auml;ngengrad m&uuml;ssen gesetzt sein"

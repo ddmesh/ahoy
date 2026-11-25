@@ -116,6 +116,10 @@ void app::setup() {
 
     mPubSerial.setup(mConfig, &mSys, &mTimestamp);
 
+    #if defined(ENABLE_SUNSPEC)
+    mSunSpec.setup(this, &mSys, mConfig);
+    #endif /*ENABLE_SUNSPEC*/
+
     //mImprov.setup(this, mConfig->sys.deviceName, mVersion);
 
     #if defined(ENABLE_SIMULATOR)
@@ -166,6 +170,10 @@ void app::onNetwork(bool connected) {
 
         resetTickerByName("tSend");
         every([this]() { tickSend(); }, mConfig->inst.sendInterval, "tSend");
+
+        #if defined(ENABLE_SUNSPEC)
+        mSunSpec.begin(); // starts only once and only if enabled
+        #endif /*ENABLE_SUNSPEC*/
 
         #if defined(ENABLE_MQTT)
         if (mMqttEnabled) {
@@ -492,6 +500,10 @@ void app::resetSystem(void) {
         "H"
     #endif
 
+    #ifdef ENABLE_SUNSPEC
+        "S"
+    #endif
+
     #ifdef AP_ONLY
         "A"
     #endif
@@ -501,7 +513,7 @@ void app::resetSystem(void) {
     #endif
 
     #ifdef ENABLE_SIMULATOR
-        "S"
+        "-sim"
     #endif
 
         "-"

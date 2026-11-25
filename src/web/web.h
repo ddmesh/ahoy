@@ -600,6 +600,25 @@ class Web {
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
             mConfig->mqtt.enableRetain = (request->arg("retain") == "on");
 
+            #if defined(ENABLE_SUNSPEC)
+            // SunSpec / Modbus TCP
+            mConfig->plugin.sunspec.enabled = (request->arg("ssEn") == "on");
+            if (request->arg("ssPort") != "")
+                mConfig->plugin.sunspec.port = request->arg("ssPort").toInt() & 0xffff;
+            mConfig->plugin.sunspec.mode = (request->arg("ssMode").toInt() == 1) ? 1 : 0;
+            if (request->arg("ssUnit") != "") {
+                int unit = request->arg("ssUnit").toInt();
+                if ((unit >= 1) && (unit <= 247))
+                    mConfig->plugin.sunspec.unitId = unit;
+            }
+            if (request->arg("ssMaxCl") != "") {
+                int maxCl = request->arg("ssMaxCl").toInt();
+                if ((maxCl >= 1) && (maxCl <= 4))
+                    mConfig->plugin.sunspec.maxClients = maxCl;
+            }
+            request->arg("ssAllow").toCharArray(mConfig->plugin.sunspec.allow, SUNSPEC_ALLOW_LEN);
+            #endif
+
             // serial console
             mConfig->serial.debug = (request->arg("serDbg") == "on");
             mConfig->serial.privacyLog = (request->arg("priv") == "on");

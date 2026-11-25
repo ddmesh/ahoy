@@ -258,6 +258,40 @@
                         </fieldset>
                     </div>
 
+                    <!--IF_ENABLE_SUNSPEC-->
+                    <button type="button" class="s_collapsible">SunSpec / Modbus TCP</button>
+                    <div class="s_content">
+                        <fieldset class="mb-4">
+                            <legend class="des">SunSpec / Modbus TCP</legend>
+                            <div class="row mb-3">
+                                <div class="col-8 col-sm-3">{#SUNSPEC_ENABLE}</div>
+                                <div class="col-4 col-sm-9"><input type="checkbox" name="ssEn"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#SUNSPEC_MODE}</div>
+                                <div class="col-12 col-sm-9"><select name="ssMode"><option value="0">{#SUNSPEC_MODE_COMBINED}</option><option value="1">{#SUNSPEC_MODE_SEPARATE}</option></select></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">Port</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="ssPort" min="1" max="65535"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#SUNSPEC_UNIT_ID}</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="ssUnit" min="1" max="247"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#SUNSPEC_MAX_CLIENTS}</div>
+                                <div class="col-12 col-sm-9"><input type="number" name="ssMaxCl" min="1" max="4"/></div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-12 col-sm-3 my-2">{#SUNSPEC_ALLOW}</div>
+                                <div class="col-12 col-sm-9"><input type="text" name="ssAllow" maxlength="79" pattern="[0-9\./,; ]*" placeholder="192.168.1.10, 192.168.2.0/24"/></div>
+                            </div>
+                            <p class="des">{#SUNSPEC_NOTE}</p>
+                        </fieldset>
+                    </div>
+
+                    <!--ENDIF_ENABLE_SUNSPEC-->
                     <button type="button" class="s_collapsible">{#PINOUT_CONFIG}</button>
                     <div class="s_content">
                         <fieldset class="mb-4">
@@ -799,6 +833,11 @@
                 var cbDisNightCom = ml("input", {name: "disnightcom", type: "checkbox"}, null);
                 cbEn.checked = (obj.enabled);
                 cbDisNightCom.checked = (obj.disnightcom);
+                /*IF_ENABLE_SUNSPEC*/
+                var cbSunSpec = ml("input", {name: "sunspec", type: "checkbox"}, null);
+                cbSunSpec.checked = (undefined === obj.sunspec) ? true : obj.sunspec;
+                var selSsPhase = sel("ss_phase", [[0, "L1"], [1, "L2"], [2, "L3"]], (undefined === obj.ss_phase) ? 0 : obj.ss_phase);
+                /*ENDIF_ENABLE_SUNSPEC*/
 
                 var ser = ml("input", {name: "ser", class: "text", type: "text", pattern: "[0-9a-fA-F]{12}", value: obj.serial}, null);
                 var html = ml("div", {}, [
@@ -829,6 +868,16 @@
                             ml("div", {class: "col-10"}, "{#INV_PAUSE_DURING_NIGHT}"),
                             ml("div", {class: "col-2"}, cbDisNightCom)
                         ])
+                        /*IF_ENABLE_SUNSPEC*/
+                        , ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-10"}, "{#INV_SUNSPEC}"),
+                            ml("div", {class: "col-2"}, cbSunSpec)
+                        ]),
+                        ml("div", {class: "row mb-3"}, [
+                            ml("div", {class: "col-12 col-sm-6 my-2"}, "{#INV_SUNSPEC_PHASE}"),
+                            ml("div", {class: "col-12 col-sm-6"}, selSsPhase)
+                        ])
+                        /*ENDIF_ENABLE_SUNSPEC*/
                     ]),
                     ml("div", {class: "row mt-5"}, [
                         ml("div", {class: "col-8", id: "res"}, ""),
@@ -903,6 +952,10 @@
                         o.pa   = document.getElementsByName("cmtpa")[0].value;
                     o.freq = document.getElementsByName("freq")[0].value;
                     o.disnightcom = document.getElementsByName("disnightcom")[0].checked;
+                    /*IF_ENABLE_SUNSPEC*/
+                    o.sunspec = document.getElementsByName("sunspec")[0].checked;
+                    o.ss_phase = parseInt(document.getElementsByName("ss_phase")[0].value);
+                    /*ENDIF_ENABLE_SUNSPEC*/
                     getAjax("/api/setup", cb, "POST", JSON.stringify(o));
                 }
 
@@ -992,6 +1045,17 @@
                 document.getElementsByName("retain")[0].checked = obj.retain
             }
 
+            /*IF_ENABLE_SUNSPEC*/
+            function parseSunSpec(obj) {
+                document.getElementsByName("ssEn")[0].checked = obj.en;
+                document.getElementsByName("ssMode")[0].value = obj.mode;
+                document.getElementsByName("ssPort")[0].value = obj.port;
+                document.getElementsByName("ssUnit")[0].value = obj.unit;
+                document.getElementsByName("ssMaxCl")[0].value = obj.maxCl;
+                document.getElementsByName("ssAllow")[0].value = obj.allow;
+            }
+
+            /*ENDIF_ENABLE_SUNSPEC*/
             function parseNtp(obj) {
                 for(var i of [["ntpAddr", "addr"], ["ntpPort", "port"], ["ntpIntvl", "interval"]])
                     document.getElementsByName(i[0])[0].value = obj[i[1]];
@@ -1348,6 +1412,9 @@
                     parseSys(root.system);
                     parseStaticIp(root.static_ip);
                     parseMqtt(root.mqtt);
+                    /*IF_ENABLE_SUNSPEC*/
+                    parseSunSpec(root.sunspec);
+                    /*ENDIF_ENABLE_SUNSPEC*/
                     parseNtp(root.ntp);
                     parseSun(root.sun);
                     parsePinout(root.pinout);
