@@ -106,7 +106,11 @@ class RestApi {
             // retries GET requests on 503.
             if((mHeapFreeBlk < bufSize) || (mHeapFree < (bufSize + API_HEAP_RESERVE))) {
                 DPRINTLN(DBG_WARN, F("API: low memory, request refused"));
-                request->send(503, F("application/json"), F("{\"error\":\"low memory\"}"));
+                // heap values help to find out what is missing
+                char buf[96];
+                snprintf(buf, sizeof(buf), "{\"error\":\"low memory\",\"heap_free\":%u,\"heap_max_free_blk\":%u,\"need\":%u}",
+                    (unsigned)mHeapFree, (unsigned)mHeapFreeBlk, (unsigned)bufSize);
+                request->send(503, F("application/json"), buf);
                 return;
             }
             AsyncJsonResponse* response = new AsyncJsonResponse(false, bufSize);
@@ -164,6 +168,10 @@ class RestApi {
                 return 1024;
             if(path == "index")
                 return 1536 + MAX_NUM_INVERTERS * 320;
+            // '/api' and '/api/': list of endpoints, ~1.8 kB with a
+            // 64 character host name
+            if(path.length() == 0)
+                return 2048;
             return API_JSON_SIZE_DEFAULT;
         }
 
