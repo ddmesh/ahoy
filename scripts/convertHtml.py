@@ -219,10 +219,12 @@ def convert2Header(inFile, versionPath, lang):
     f.write("#ifndef __{}_{}_H__\n".format(define, define2))
     f.write("#define __{}_{}_H__\n".format(define, define2))
 
+    # mtime=0: without it the gzip header contains the current time, the
+    # generated headers would differ on every build and force a recompile
     if fileType == "ico":
-        zipped = gzip.compress(bytes(data))
+        zipped = gzip.compress(bytes(data), mtime=0)
     else:
-        zipped = gzip.compress(bytes(data, 'utf-8'))
+        zipped = gzip.compress(bytes(data, 'utf-8'), mtime=0)
     zippedStr = ""
     for i in range(len(zipped)):
         zippedStr += "0x{:02x}".format(zipped[i]) #hex(zipped[i])
