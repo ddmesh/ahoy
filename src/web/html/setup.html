@@ -207,6 +207,7 @@
                         </fieldset>
                     </div>
 
+                    <!--IF_ENABLE_MQTT-->
                     <button type="button" class="s_collapsible">MQTT</button>
                     <div class="s_content">
                         <fieldset class="mb-4">
@@ -257,6 +258,7 @@
                             </div>
                         </fieldset>
                     </div>
+                    <!--ENDIF_ENABLE_MQTT-->
 
                     <button type="button" class="s_collapsible">{#PINOUT_CONFIG}</button>
                     <div class="s_content">
@@ -592,6 +594,7 @@
                 e.innerHTML = "{#NTP_SYNCED_AT}: " + toIsoDateStr(date) + ", {#NTP_DIFF}: " + (ts - obj["ts_now"]) + "ms";
             }
 
+            /*IF_ENABLE_MQTT*/
             function apiCbMqtt(obj) {
                 var e = document.getElementById("apiResultMqtt");
                 if(obj["success"])
@@ -599,6 +602,7 @@
                 else
                     e.innerHTML = "{#ERROR} " + obj["error"];
             }
+            /*ENDIF_ENABLE_MQTT*/
 
             function setTime() {
                 var date = new Date()
@@ -613,10 +617,12 @@
                 setTimeout(function() {getAjax('/api/index', apiCbNtp2)}, 2000)
             }
 
+            /*IF_ENABLE_MQTT*/
             function sendDiscoveryConfig() {
                 var obj = {cmd: "discovery_cfg", token: "*"}
                 getAjax("/api/setup", apiCbMqtt, "POST", JSON.stringify(obj));
             }
+            /*ENDIF_ENABLE_MQTT*/
 
             document.addEventListener('DOMContentLoaded', () => {
                 const fileInput = document.querySelector('#importFileInput');
@@ -985,12 +991,14 @@
                 }
             }
 
+            /*IF_ENABLE_MQTT*/
             function parseMqtt(obj) {
                 for(var i of [["Addr", "broker"], ["Port", "port"], ["ClientId", "clientId"], ["User", "user"], ["Pwd", "pwd"], ["Topic", "topic"], ["Interval", "interval"]])
                     document.getElementsByName("mqtt"+i[0])[0].value = obj[i[1]];
                 document.getElementsByName("mqttJson")[0].checked = obj["json"];
                 document.getElementsByName("retain")[0].checked = obj.retain
             }
+            /*ENDIF_ENABLE_MQTT*/
 
             function parseNtp(obj) {
                 for(var i of [["ntpAddr", "addr"], ["ntpPort", "port"], ["ntpIntvl", "interval"]])
@@ -1173,7 +1181,10 @@
 
             function parseSerial(obj) {
                 var e = document.getElementById("serialCb")
-                var l = [["serEn", "show_live_data", "{#LOG_PRINT_INVERTER_DATA}"], ["serDbg", "debug", "{#LOG_SERIAL_DEBUG}"], ["priv", "priv", "{#LOG_PRIVACY_MODE}"], ["wholeTrace", "wholeTrace", "{#LOG_PRINT_TRACES}"], ["log2mqtt", "log2mqtt", "{#LOG_TO_MQTT}"]]
+                var l = [["serEn", "show_live_data", "{#LOG_PRINT_INVERTER_DATA}"], ["serDbg", "debug", "{#LOG_SERIAL_DEBUG}"], ["priv", "priv", "{#LOG_PRIVACY_MODE}"], ["wholeTrace", "wholeTrace", "{#LOG_PRINT_TRACES}"]]
+                /*IF_ENABLE_MQTT*/
+                l.push(["log2mqtt", "log2mqtt", "{#LOG_TO_MQTT}"])
+                /*ENDIF_ENABLE_MQTT*/
                 for(var i of l) {
                     var cb = ml("input", {name: i[0], type: "checkbox"}, null)
                     cb.checked = obj[i[1]]
@@ -1347,7 +1358,9 @@
                     parseGeneric(root.generic);
                     parseSys(root.system);
                     parseStaticIp(root.static_ip);
+                    /*IF_ENABLE_MQTT*/
                     parseMqtt(root.mqtt);
+                    /*ENDIF_ENABLE_MQTT*/
                     parseNtp(root.ntp);
                     parseSun(root.sun);
                     parsePinout(root.pinout);

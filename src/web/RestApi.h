@@ -332,13 +332,18 @@ class RestApi {
                 case 1:  getGeneric(request, obj.createNestedObject(F("generic")));     break;
                 case 2:  getChipInfo(obj.createNestedObject(F("chip")));                break;
                 case 3:  getRadioNrf(obj.createNestedObject(F("radioNrf")));            break;
+                #if defined(ENABLE_MQTT)
                 case 4:  getMqttInfo(obj.createNestedObject(F("mqtt")));                break;
+                #endif /*ENABLE_MQTT*/
                 case 5:  getNetworkInfo(request, obj.createNestedObject(F("network"))); break;
                 case 6:  getMemoryInfo(obj.createNestedObject(F("memory")));            break;
                 #if defined(ESP32)
                 case 7:  getRadioCmtInfo(obj.createNestedObject(F("radioCmt")));        break;
                 #endif
             }
+            // section not available in this build: no separator
+            if(obj.size() == 0)
+                part.pre = "";
         }
 
         // parts of '/api/setup', same members and order as getSetup()
@@ -364,7 +369,11 @@ class RestApi {
             idx -= SYS_PARTS;
 
             switch(idx) {
-                case 0:  getMqtt(obj.createNestedObject(F("mqtt")));           break;
+                case 0:
+                    #if defined(ENABLE_MQTT)
+                    getMqtt(obj.createNestedObject(F("mqtt")));
+                    #endif
+                    break;
                 case 1:  getNtp(obj.createNestedObject(F("ntp")));             break;
                 case 2:  getSun(obj.createNestedObject(F("sun")));             break;
                 case 3:  getPinout(obj.createNestedObject(F("pinout")));       break;
@@ -957,7 +966,9 @@ class RestApi {
             getGeneric(request, obj.createNestedObject(F("generic")));
             getChipInfo(obj.createNestedObject(F("chip")));
             getRadioNrf(obj.createNestedObject(F("radioNrf")));
+            #if defined(ENABLE_MQTT)
             getMqttInfo(obj.createNestedObject(F("mqtt")));
+            #endif /*ENABLE_MQTT*/
             getNetworkInfo(request, obj.createNestedObject(F("network")));
             getMemoryInfo(obj.createNestedObject(F("memory")));
             #if defined(ESP32)
@@ -1280,6 +1291,7 @@ class RestApi {
             obj[F("boot_ver")]   = iv->getChannelFieldValueInt(CH0, FLD_BOOTLOADER_VER, rec);
         }
 
+        #if defined(ENABLE_MQTT)
         void getMqtt(JsonObject obj) {
             obj[F("broker")]     = String(mConfig->mqtt.broker);
             obj[F("clientId")]   = String(mConfig->mqtt.clientId);
@@ -1291,6 +1303,7 @@ class RestApi {
             obj[F("interval")]   = String(mConfig->mqtt.interval);
             obj[F("retain")]     = (bool)mConfig->mqtt.enableRetain;
         }
+        #endif /*ENABLE_MQTT*/
 
         void getNtp(JsonObject obj) {
             obj[F("addr")] = String(mConfig->ntp.addr);
@@ -1472,7 +1485,9 @@ class RestApi {
             obj[F("debug")]          = mConfig->serial.debug;
             obj[F("priv")]           = mConfig->serial.privacyLog;
             obj[F("wholeTrace")]     = mConfig->serial.printWholeTrace;
+            #if defined(ENABLE_MQTT)
             obj[F("log2mqtt")]       = mConfig->serial.log2mqtt;
+            #endif /*ENABLE_MQTT*/
         }
 
         void getStaticIp(JsonObject obj) {
@@ -1501,6 +1516,7 @@ class RestApi {
             obj[F("pir_pin")]           = mConfig->plugin.display.pirPin;
         }
 
+        #if defined(ENABLE_MQTT)
         void getMqttInfo(JsonObject obj) {
             obj[F("enabled")]   = (mConfig->mqtt.broker[0] != '\0');
             obj[F("connected")] = mApp->getMqttIsConnected();
@@ -1508,6 +1524,7 @@ class RestApi {
             obj[F("rx_cnt")]    = mApp->getMqttRxCnt();
             obj[F("interval")]  = mConfig->mqtt.interval;
         }
+        #endif /*ENABLE_MQTT*/
 
         void getIndex(AsyncWebServerRequest *request, JsonObject obj) {
             getGeneric(request, obj.createNestedObject(F("generic")));
@@ -1568,7 +1585,9 @@ class RestApi {
             getGeneric(request, obj.createNestedObject(F("generic")));
             getSysInfo(request, obj.createNestedObject(F("system")));
             //getInverterList(obj.createNestedObject(F("inverter")));
+            #if defined(ENABLE_MQTT)
             getMqtt(obj.createNestedObject(F("mqtt")));
+            #endif /*ENABLE_MQTT*/
             getNtp(obj.createNestedObject(F("ntp")));
             getSun(obj.createNestedObject(F("sun")));
             getPinout(obj.createNestedObject(F("pinout")));

@@ -600,6 +600,7 @@ class Web {
                 mConfig->sun.offsetSecEvening = request->arg("sunOffsSs").toInt() * 60;
             }
 
+            #if defined(ENABLE_MQTT)
             // mqtt
             if (request->arg("mqttAddr") != "") {
                 String addr = request->arg("mqttAddr");
@@ -616,13 +617,16 @@ class Web {
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
             mConfig->mqtt.enableRetain = (request->arg("retain") == "on");
+            #endif /*ENABLE_MQTT*/
 
             // serial console
             mConfig->serial.debug = (request->arg("serDbg") == "on");
             mConfig->serial.privacyLog = (request->arg("priv") == "on");
             mConfig->serial.printWholeTrace = (request->arg("wholeTrace") == "on");
             mConfig->serial.showIv = (request->arg("serEn") == "on");
+            #if defined(ENABLE_MQTT)
             mConfig->serial.log2mqtt = (request->arg("log2mqtt") == "on");
+            #endif /*ENABLE_MQTT*/
 
             // display
             mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("disp_pwr") == "on");
