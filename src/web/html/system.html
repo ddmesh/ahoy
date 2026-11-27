@@ -125,6 +125,7 @@
                 );
             }
 
+            /*IF_ENABLE_MQTT*/
             function parseMqtt(obj) {
                 if(obj.enabled) {
                     lines = [
@@ -143,6 +144,7 @@
                     )
                 );
             }
+            /*ENDIF_ENABLE_MQTT*/
 
             function parseMemory(obj) {
                 lines = [
@@ -190,7 +192,9 @@
                     } else if(null != obj.system) {
                         parseRadio(obj.system)
                         parseNetwork(obj.system.network, obj.system.generic)
+                        /*IF_ENABLE_MQTT*/
                         parseMqtt(obj.system.mqtt)
+                        /*ENDIF_ENABLE_MQTT*/
                         parseMemory(obj.system.memory)
                         parseSysInfo(obj.system)
                         getAjax('/api/index', parseIndex)
