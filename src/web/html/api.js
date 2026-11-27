@@ -115,7 +115,7 @@ function parseNav(obj) {
             }
             continue;
         }
-        if(window.location.pathname == "/" + l.href.substring(0, l.href.indexOf("?")).split('/').pop()) {
+        if((l.host == window.location.host) && (l.pathname == window.location.pathname)) {
             if((i != 8 )&& (i != 9))
                 l.classList.add("active");
         }

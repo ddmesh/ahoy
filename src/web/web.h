@@ -250,8 +250,8 @@ class Web {
             AsyncWebServerResponse *response = beginResponse(request, 200, F("text/html; charset=UTF-8"), zippedHtml, len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
-            if(request->hasParam("v"))
-                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            // HTML pages are not cached: they carry the asset version
+            // (?v=) and must be up to date right after an OTA update
             request->send(response);
         }
 
@@ -666,10 +666,6 @@ class Web {
             AsyncWebServerResponse *response = beginResponse(request, 200, F("text/html; charset=UTF-8"), about_html, about_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
-            if(request->hasParam("v")) {
-                response->addHeader(F("Cache-Control"), F("max-age=604800"));
-            }
-
             request->send(response);
         }
 
