@@ -472,7 +472,7 @@ class RestApi {
             getChipInfo(obj.createNestedObject(F("chip")));
             getRadioNrf(obj.createNestedObject(F("radioNrf")));
             getMqttInfo(obj.createNestedObject(F("mqtt")));
-            getNetworkInfo(obj.createNestedObject(F("network")));
+            getNetworkInfo(request, obj.createNestedObject(F("network")));
             getMemoryInfo(obj.createNestedObject(F("memory")));
             #if defined(ESP32)
             getRadioCmtInfo(obj.createNestedObject(F("radioCmt")));
@@ -848,7 +848,7 @@ class RestApi {
         }
         #endif
 
-        void getNetworkInfo(JsonObject obj) {
+        void getNetworkInfo(AsyncWebServerRequest *request, JsonObject obj) {
             #if defined(ETHERNET)
             bool isWired = mApp->isWiredConnection();
             if(!isWired)
@@ -864,7 +864,10 @@ class RestApi {
             obj[F("ssid")]   = mConfig->sys.stationSsid;
             obj[F("hidd")]   = mConfig->sys.isHidden;
             obj[F("mac")]    = mApp->getMac();
-            obj[F("ip")]     = mApp->getIp();
+            // IP of the interface the request came in on: AP address
+            // (192.168.4.1) if connected to the AP, station IP otherwise.
+            // getIp() is the station IP only, "(IP unset)" in AP mode
+            obj[F("ip")]     = request->client()->localIP().toString();
         }
 
         void getChipInfo(JsonObject obj) {
