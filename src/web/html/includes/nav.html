@@ -10,7 +10,10 @@
         <!--IF_ENABLE_HISTORY-->
         <a id="nav11" class="acitve" href="/history">{#NAV_HISTORY}</a>
         <!--ENDIF_ENABLE_HISTORY-->
+        <!--IF_DISABLE_WEBSERIAL-->
+        <!--ELSE-->
         <a id="nav4" class="hide" href="/serial">{#NAV_WEBSERIAL}</a>
+        <!--ENDIF_DISABLE_WEBSERIAL-->
         <a id="nav5" class="hide" href="/setup">{#NAV_SETTINGS}</a>
         <span class="separator"></span>
         <a id="nav6" class="hide" href="/update">Update</a>

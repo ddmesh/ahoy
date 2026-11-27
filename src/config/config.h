@@ -54,6 +54,9 @@
 // for devices with little (fragmented) heap
 //#define ENABLE_API_STREAMING
 
+// remove the web-serial console (menu, page and its buffer) to save memory
+//#define DISABLE_WEBSERIAL
+
 // inverter simulation
 //#define ENABLE_SIMULATOR
 

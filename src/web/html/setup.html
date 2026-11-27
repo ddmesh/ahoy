@@ -702,6 +702,10 @@
                 var a = ["Index", "{#NAV_LIVE}", "{#NAV_WEBSERIAL}", "{#NAV_SETTINGS}", "Update", "System", "{#NAV_HISTORY}"];
                 var el = [];
                 for(var i = 0; i < 7; i++) {
+                    /*IF_DISABLE_WEBSERIAL*/
+                    if(2 == i) // WebSerial
+                        continue
+                    /*ENDIF_DISABLE_WEBSERIAL*/
                     var chk = ((obj.prot_mask & (1 << i)) == (1 << i));
                     el.push(mlCb("protMask" + i, a[i], chk))
                 }
