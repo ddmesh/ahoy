@@ -6,6 +6,7 @@
 #ifndef __AHOY_NETWORK_H__
 #define __AHOY_NETWORK_H__
 
+#include <vector>
 #include "AhoyNetworkHelper.h"
 #include "../config/settings.h"
 #include "../utils/helper.h"
@@ -142,13 +143,8 @@ class AhoyNetwork {
         }
 
         bool getAvailNetworks(JsonObject obj, IApp *app) {
-            if(!mScanActive) {
-                app->addOnce([this]() {scan();}, 1, "scan");
-                return false;
-            }
-
-            int n = WiFi.scanComplete();
-            if (WIFI_SCAN_RUNNING == n)
+            int n = getScanResult(app);
+            if(n < 0)
                 return false;
 
             if(n > 0) {
@@ -156,16 +152,53 @@ class AhoyNetwork {
                 int sort[n];
                 sortRSSI(&sort[0], n);
                 for (int i = 0; i < n; ++i) {
-                    nets[i][F("ssid")] = WiFi.SSID(sort[i]);
-                    nets[i][F("rssi")] = WiFi.RSSI(sort[i]);
+                    getScanEntry(nets.createNestedObject(), sort[i]);
                 }
             }
-            mScanActive = false;
-            WiFi.scanDelete();
+            freeScanResult();
 
             return true;
         }
 
+        #if defined(ENABLE_API_STREAMING)
+        // number of found networks, 'order' gets their indices sorted by
+        // signal strength. -1: no result yet. Call freeScanResult() at the end
+        int getSortedScanResult(IApp *app, std::vector<int> &order) {
+            int n = getScanResult(app);
+            if(n > 0) {
+                order.resize(n);
+                sortRSSI(order.data(), n);
+            }
+            return n;
+        }
+        #endif
+
+        void getScanEntry(JsonObject obj, int idx) {
+            obj[F("ssid")] = WiFi.SSID(idx);
+            obj[F("rssi")] = WiFi.RSSI(idx);
+        }
+
+        void freeScanResult(void) {
+            mScanActive = false;
+            WiFi.scanDelete();
+        }
+
+    private:
+        // starts a scan if none is active, -1: no result yet
+        int getScanResult(IApp *app) {
+            if(!mScanActive) {
+                app->addOnce([this]() {scan();}, 1, "scan");
+                return -1;
+            }
+
+            int n = WiFi.scanComplete();
+            if (WIFI_SCAN_RUNNING == n)
+                return -1;
+
+            return (n > 0) ? n : 0; // 0 also if the scan failed
+        }
+
+    public:
         void scan(void) {
             mScanActive = true;
             if(mWifiConnecting) {
