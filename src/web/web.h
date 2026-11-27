@@ -73,7 +73,7 @@ class Web {
 
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
             mWeb.on("/wizard",         HTTP_GET,  std::bind(&Web::onWizard,       this, std::placeholders::_1));
-            mWeb.on("/generate_204",   HTTP_GET,  std::bind(&Web::onWizard,       this, std::placeholders::_1));   //Android captive portal
+            mWeb.on("/generate_204",   HTTP_GET,  std::bind(&Web::onCaptivePortal, this, std::placeholders::_1));   //Android captive portal
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
@@ -319,20 +319,31 @@ class Web {
             client->send("hello!", NULL, millis(), 1000);
         }
 
-        void onIndex(AsyncWebServerRequest *request, bool checkAp = true) {
-            #if !defined(ETHERNET)
-            if(mApp->isApActive() && checkAp) {
-                onWizard(request);
-                return;
-            }
-            #else
-            // show wizard only if ethernet is not configured
-            if(mApp->isApActive() && checkAp && !mConfig->sys.eth.enabled) {
-                onWizard(request);
-                return;
-            }
+        // the setup wizard is only useful as long as no network is configured,
+        // an active AP alone (e.g. station not connected yet) is no reason
+        bool isWizardRequired() const {
+            if(!mApp->isApActive())
+                return false;
+            #if defined(ETHERNET)
+            if(mConfig->sys.eth.enabled)
+                return false;
             #endif
+            return ('\0' == mConfig->sys.stationSsid[0]);
+        }
+
+        void onIndex(AsyncWebServerRequest *request, bool checkAp = true) {
+            if(checkAp && isWizardRequired()) {
+                onWizard(request);
+                return;
+            }
             getPage(request, PROT_MASK_INDEX, index_html, index_html_len);
+        }
+
+        void onCaptivePortal(AsyncWebServerRequest *request) {
+            if(isWizardRequired())
+                onWizard(request);
+            else
+                onIndex(request, false);
         }
 
         void onLogin(AsyncWebServerRequest *request) {
@@ -416,7 +427,7 @@ class Web {
         void showNotFound(AsyncWebServerRequest *request) {
             checkProtection(request);
             //DBGPRINTLN(request->url());
-            request->redirect("/wizard");
+            request->redirect(isWizardRequired() ? F("/wizard") : F("/"));
         }
 
         void onReboot(AsyncWebServerRequest *request) {
