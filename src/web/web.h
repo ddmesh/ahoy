@@ -104,6 +104,9 @@ class Web {
         }
 
         void tickSecond() {
+            if(mSerialClientConnnected && (0 == mEvts.count()))
+                mSerialClientConnnected = false; // the buffer is freed below
+
             if (mSerialClientConnnected) {
                 if(nullptr == mSerialBuf)
                     return;
@@ -116,6 +119,9 @@ class Web {
             } else if(nullptr != mSerialBuf) {
                 delete[] mSerialBuf;
                 mSerialBuf = nullptr;
+                // a new buffer starts empty
+                mSerialBufFill = 0;
+                mSerialAddTime = true;
             }
         }
 
