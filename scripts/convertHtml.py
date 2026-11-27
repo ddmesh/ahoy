@@ -8,6 +8,7 @@ from datetime import date
 from pathlib import Path
 import subprocess
 import configparser
+import hashlib
 Import("env")
 build_flags = []
 
@@ -99,6 +100,16 @@ def readVersionFull(path):
     version = version[:-1] + "_" + get_git_sha()
     return version
 
+# cache key of css/js files (?v=), they are cached 7 days by the browser.
+# Content based, so it changes with every change of these files, also
+# between builds with the same firmware version.
+def assetVersion():
+    h = hashlib.md5()
+    for name in ("api.js", "style.css", "colorBright.css", "colorDark.css"):
+        with open(name, "rb") as f:
+            h.update(f.read())
+    return h.hexdigest()[:8]
+
 def htmlParts(file, header, nav, footer, versionPath, lang):
     f = open(file, "r")
     lines = f.readlines()
@@ -136,6 +147,7 @@ def htmlParts(file, header, nav, footer, versionPath, lang):
     for line in linesMod:
         p += line
 
+    p = p.replace("{#ASSET_VERSION}", assetVersion())
     p = p.replace("{#VERSION}", version)
     p = p.replace("{#VERSION_FULL}", readVersionFull(versionPath))
     p = p.replace("{#VERSION_GIT}", link)
