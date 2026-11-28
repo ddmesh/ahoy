@@ -38,8 +38,14 @@ class AhoyWifi : public AhoyNetwork {
 
         void tickNetworkLoop() override {
             AhoyNetwork::tickNetworkLoop();
-            if(mAp.isEnabled())
-                mAp.tickLoop();
+            if(mAp.isEnabled()) {
+                // retry to disable the AP: disable() refuses as long as a client
+                // is connected to the AP, the GOT_IP event tries it only once
+                if(NetworkState::GOT_IP == mStatus)
+                    mAp.disable();
+                if(mAp.isEnabled())
+                    mAp.tickLoop();
+            }
         }
 
         virtual String getIp(void) override {

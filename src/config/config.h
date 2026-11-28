@@ -50,6 +50,13 @@
 // history graph (WebUI)
 //#define ENABLE_HISTORY
 
+// send all API answers in small parts, which need only a 1 kB JSON buffer,
+// for devices with little (fragmented) heap
+//#define ENABLE_API_STREAMING
+
+// remove the web-serial console (menu, page and its buffer) to save memory
+//#define DISABLE_WEBSERIAL
+
 // inverter simulation
 //#define ENABLE_SIMULATOR
 

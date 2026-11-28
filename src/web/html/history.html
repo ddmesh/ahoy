@@ -43,7 +43,9 @@
             function calcScale(obj) {
                 let s = {}
                 s.x_mul = 60
-                s.ts_dur = obj.refresh * obj.value.length
+                // at least 1: refresh and max are 0 as long as there is no data,
+                // both are used as divisor
+                s.ts_dur = Math.max(1, obj.refresh * obj.value.length)
                 s.ts_start = obj.lastValueTs - s.ts_dur
                 while(s.x_mul * 10 <= s.ts_dur)
                     s.x_mul += (s.x_mul == 60) ? 240 : ((s.x_mul < 1800) ? 300 : 1800)
@@ -51,7 +53,7 @@
                 s.y_mul = 10
                 while(s.y_mul * 10 <= obj.max)
                     s.y_mul += (s.y_mul < 100) ? 10 : 100
-                s.y_step = Math.ceil(obj.max / s.y_mul)
+                s.y_step = Math.max(1, Math.ceil(obj.max / s.y_mul))
                 s.y_max = s.y_mul * s.y_step
                 return s
             }

@@ -6,6 +6,7 @@
 #ifndef __IAPP_H__
 #define __IAPP_H__
 
+#include <vector>
 #include "defines.h"
 #include "ESPAsyncWebServer.h"
 #include "utils/scheduler.h"
@@ -29,6 +30,11 @@ class IApp {
         virtual void addOnce(ah::scdCb c, uint32_t timeout, const char *name) = 0;
 
         virtual bool getAvailNetworks(JsonObject obj) = 0;
+        #if defined(ENABLE_API_STREAMING)
+        virtual int getSortedScanResult(std::vector<int> &order) = 0;
+        virtual void getScanEntry(JsonObject obj, int idx) = 0;
+        virtual void freeScanResult(void) = 0;
+        #endif
         virtual void setupStation(void) = 0;
         virtual bool getWasInCh12to14(void) const = 0;
         virtual String getIp(void) = 0;

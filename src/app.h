@@ -177,6 +177,20 @@ class app : public IApp, public ah::Scheduler {
             return mNetwork->getAvailNetworks(obj, this);
         }
 
+        #if defined(ENABLE_API_STREAMING)
+        int getSortedScanResult(std::vector<int> &order) override {
+            return mNetwork->getSortedScanResult(this, order);
+        }
+
+        void getScanEntry(JsonObject obj, int idx) override {
+            mNetwork->getScanEntry(obj, idx);
+        }
+
+        void freeScanResult(void) override {
+            mNetwork->freeScanResult();
+        }
+        #endif
+
         void setupStation(void) override {
             mNetwork->begin();
         }

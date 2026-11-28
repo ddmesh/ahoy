@@ -115,7 +115,7 @@ function parseNav(obj) {
             }
             continue;
         }
-        if(window.location.pathname == "/" + l.href.substring(0, l.href.indexOf("?")).split('/').pop()) {
+        if((l.host == window.location.host) && (l.pathname == window.location.pathname)) {
             if((i != 8 )&& (i != 9))
                 l.classList.add("active");
         }
@@ -187,7 +187,7 @@ function toggle(id, cl="hide") {
         e.classList.remove(cl);
 }
 
-function getAjax(url, ptr, method="GET", json=null) {
+function getAjax(url, ptr, method="GET", json=null, retry=3) {
     var xhr = new XMLHttpRequest();
     if(xhr != null) {
        xhr.open(method, url, true);
@@ -198,12 +198,49 @@ function getAjax(url, ptr, method="GET", json=null) {
     }
     function p() {
         if(xhr.readyState == 4) {
+            if(503 == xhr.status) { // ESP low on memory, request was refused
+                if("GET" == method) {
+                    if(retry > 0)
+                        setTimeout(() => { getAjax(url, ptr, method, json, retry - 1) }, 1000);
+                    else
+                        lowMemory(url);
+                }
+                return;
+            }
+            if(lowMemoryNav != ptr)
+                lowMemoryHide();
             if(null != xhr.responseText) {
                 if(null != ptr)
                     ptr(JSON.parse(xhr.responseText));
             }
         }
     }
+}
+
+// all retries of a GET request were refused (ESP low on memory):
+// show a hint and load at least the menu (small answer)
+function lowMemory(url) {
+    var e = document.getElementById("lowMemory");
+    if(null == e) {
+        e = ml("div", {id: "lowMemory", style: "padding: 10px; background-color: #c00; color: #fff;"},
+            "ESP low on memory, page data could not be loaded. Please reload the page.");
+        var c = document.getElementById("content"); // below fixed menu
+        if(null == c)
+            c = document.body;
+        c.insertBefore(e, c.firstChild);
+    }
+    if(url != "/api/generic")
+        getAjax("/api/generic", lowMemoryNav);
+}
+
+function lowMemoryNav(obj) {
+    parseNav(obj);
+}
+
+function lowMemoryHide() {
+    var e = document.getElementById("lowMemory");
+    if(null != e)
+        e.remove();
 }
 
 const getJSON = async url => {

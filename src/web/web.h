@@ -21,7 +21,9 @@
 #include "html/h/grid_info_json.h"
 #include "html/h/index_html.h"
 #include "html/h/login_html.h"
+#if !defined(DISABLE_WEBSERIAL)
 #include "html/h/serial_html.h"
+#endif /*DISABLE_WEBSERIAL*/
 #include "html/h/setup_html.h"
 #include "html/h/style_css.h"
 #include "html/h/system_html.h"
@@ -46,7 +48,11 @@ const char* const pinArgNames[] = {
 template <class HMSYSTEM>
 class Web {
    public:
-        Web(void) : mWeb(80), mEvts("/events") {}
+        Web(void) : mWeb(80)
+            #if !defined(DISABLE_WEBSERIAL)
+            , mEvts("/events")
+            #endif
+        {}
 
         void setup(IApp *app, HMSYSTEM *sys, settings_t *config) {
             mApp     = app;
@@ -73,7 +79,7 @@ class Web {
 
             mWeb.on("/setup",          HTTP_GET,  std::bind(&Web::onSetup,        this, std::placeholders::_1));
             mWeb.on("/wizard",         HTTP_GET,  std::bind(&Web::onWizard,       this, std::placeholders::_1));
-            mWeb.on("/generate_204",   HTTP_GET,  std::bind(&Web::onWizard,       this, std::placeholders::_1));   //Android captive portal
+            mWeb.on("/generate_204",   HTTP_GET,  std::bind(&Web::onCaptivePortal, this, std::placeholders::_1));   //Android captive portal
             mWeb.on("/save",           HTTP_POST, std::bind(&Web::showSave,       this, std::placeholders::_1));
 
             mWeb.on("/live",           HTTP_ANY,  std::bind(&Web::onLive,         this, std::placeholders::_1));
@@ -88,22 +94,32 @@ class Web {
             mWeb.on("/update",         HTTP_GET,  std::bind(&Web::onUpdate,       this, std::placeholders::_1));
             mWeb.on("/upload",         HTTP_POST, std::bind(&Web::onUpload,       this, std::placeholders::_1),
                                                   std::bind(&Web::onUpload2,      this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5, std::placeholders::_6));
+            #if !defined(DISABLE_WEBSERIAL)
             mWeb.on("/serial",         HTTP_GET,  std::bind(&Web::onSerial,       this, std::placeholders::_1));
+            #endif /*DISABLE_WEBSERIAL*/
             mWeb.on("/about",          HTTP_GET,  std::bind(&Web::onAbout,        this, std::placeholders::_1));
             mWeb.on("/debug",          HTTP_GET,  std::bind(&Web::onDebug,        this, std::placeholders::_1));
 
 
+            #if !defined(DISABLE_WEBSERIAL)
             mEvts.onConnect(std::bind(&Web::onConnect, this, std::placeholders::_1));
             mWeb.addHandler(&mEvts);
+            #endif /*DISABLE_WEBSERIAL*/
 
             mWeb.begin();
 
+            #if !defined(DISABLE_WEBSERIAL)
             registerDebugCb(std::bind(&Web::serialCb, this, std::placeholders::_1)); // dbg.h
+            #endif /*DISABLE_WEBSERIAL*/
 
             mUploadFail = false;
         }
 
         void tickSecond() {
+            #if !defined(DISABLE_WEBSERIAL)
+            if(mSerialClientConnnected && (0 == mEvts.count()))
+                mSerialClientConnnected = false; // the buffer is freed below
+
             if (mSerialClientConnnected) {
                 if(nullptr == mSerialBuf)
                     return;
@@ -116,7 +132,11 @@ class Web {
             } else if(nullptr != mSerialBuf) {
                 delete[] mSerialBuf;
                 mSerialBuf = nullptr;
+                // a new buffer starts empty
+                mSerialBufFill = 0;
+                mSerialAddTime = true;
             }
+            #endif /*DISABLE_WEBSERIAL*/
         }
 
         AsyncWebServer *getWebSrvPtr(void) {
@@ -179,6 +199,7 @@ class Web {
             }
         }
 
+        #if !defined(DISABLE_WEBSERIAL)
         void serialCb(String msg) {
             if (!mSerialClientConnnected)
                 return;
@@ -214,6 +235,7 @@ class Web {
                 mEvts.send("webSerial, buffer overflow!<rn>", "serial", millis());
             }
         }
+        #endif /*DISABLE_WEBSERIAL*/
 
     private:
         bool checkProtection(AsyncWebServerRequest *request) {
@@ -227,9 +249,11 @@ class Web {
                 } else if ((mConfig->sys.protectionMask & PROT_MASK_HISTORY) != PROT_MASK_HISTORY) {
                     request->redirect(F("/history"));
                     return true;
+                #if !defined(DISABLE_WEBSERIAL)
                 } else if ((mConfig->sys.protectionMask & PROT_MASK_SERIAL) != PROT_MASK_SERIAL) {
                     request->redirect(F("/serial"));
                     return true;
+                #endif /*DISABLE_WEBSERIAL*/
                 } else if ((mConfig->sys.protectionMask & PROT_MASK_SYSTEM) != PROT_MASK_SYSTEM) {
                     request->redirect(F("/system"));
                     return true;
@@ -250,8 +274,8 @@ class Web {
             AsyncWebServerResponse *response = beginResponse(request, 200, F("text/html; charset=UTF-8"), zippedHtml, len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
-            if(request->hasParam("v"))
-                response->addHeader(F("Cache-Control"), F("max-age=604800"));
+            // HTML pages are not cached: they carry the asset version
+            // (?v=) and must be up to date right after an OTA update
             request->send(response);
         }
 
@@ -304,6 +328,7 @@ class Web {
             mApp->setRebootFlag();
         }
 
+        #if !defined(DISABLE_WEBSERIAL)
         void onConnect(AsyncEventSourceClient *client) {
             DPRINTLN(DBG_VERBOSE, "onConnect");
 
@@ -318,21 +343,33 @@ class Web {
 
             client->send("hello!", NULL, millis(), 1000);
         }
+        #endif /*DISABLE_WEBSERIAL*/
+
+        // the setup wizard is only useful as long as no network is configured,
+        // an active AP alone (e.g. station not connected yet) is no reason
+        bool isWizardRequired() const {
+            if(!mApp->isApActive())
+                return false;
+            #if defined(ETHERNET)
+            if(mConfig->sys.eth.enabled)
+                return false;
+            #endif
+            return ('\0' == mConfig->sys.stationSsid[0]);
+        }
 
         void onIndex(AsyncWebServerRequest *request, bool checkAp = true) {
-            #if !defined(ETHERNET)
-            if(mApp->isApActive() && checkAp) {
+            if(checkAp && isWizardRequired()) {
                 onWizard(request);
                 return;
             }
-            #else
-            // show wizard only if ethernet is not configured
-            if(mApp->isApActive() && checkAp && !mConfig->sys.eth.enabled) {
-                onWizard(request);
-                return;
-            }
-            #endif
             getPage(request, PROT_MASK_INDEX, index_html, index_html_len);
+        }
+
+        void onCaptivePortal(AsyncWebServerRequest *request) {
+            if(isWizardRequired())
+                onWizard(request);
+            else
+                onIndex(request, false);
         }
 
         void onLogin(AsyncWebServerRequest *request) {
@@ -416,7 +453,7 @@ class Web {
         void showNotFound(AsyncWebServerRequest *request) {
             checkProtection(request);
             //DBGPRINTLN(request->url());
-            request->redirect("/wizard");
+            request->redirect(isWizardRequired() ? F("/wizard") : F("/"));
         }
 
         void onReboot(AsyncWebServerRequest *request) {
@@ -491,7 +528,11 @@ class Web {
                 request->arg("adminpwd").toCharArray(mConfig->sys.adminPwd, PWD_LEN);
                 mApp->lock(false);
             }
+            #if defined(DISABLE_WEBSERIAL)
+            mConfig->sys.protectionMask &= PROT_MASK_SERIAL; // not part of the form, keep it
+            #else
             mConfig->sys.protectionMask = 0x0000;
+            #endif
             for (uint8_t i = 0; i < 7; i++) {
                 if (request->arg("protMask" + String(i)) == "on")
                     mConfig->sys.protectionMask |= (1 << i);
@@ -583,6 +624,7 @@ class Web {
                 mConfig->sun.offsetSecEvening = request->arg("sunOffsSs").toInt() * 60;
             }
 
+            #if defined(ENABLE_MQTT)
             // mqtt
             if (request->arg("mqttAddr") != "") {
                 String addr = request->arg("mqttAddr");
@@ -599,6 +641,7 @@ class Web {
             mConfig->mqtt.port = request->arg("mqttPort").toInt();
             mConfig->mqtt.interval = request->arg("mqttInterval").toInt();
             mConfig->mqtt.enableRetain = (request->arg("retain") == "on");
+            #endif /*ENABLE_MQTT*/
 
             #if defined(ENABLE_SUNSPEC)
             // SunSpec / Modbus TCP
@@ -624,7 +667,9 @@ class Web {
             mConfig->serial.privacyLog = (request->arg("priv") == "on");
             mConfig->serial.printWholeTrace = (request->arg("wholeTrace") == "on");
             mConfig->serial.showIv = (request->arg("serEn") == "on");
+            #if defined(ENABLE_MQTT)
             mConfig->serial.log2mqtt = (request->arg("log2mqtt") == "on");
+            #endif /*ENABLE_MQTT*/
 
             // display
             mConfig->plugin.display.pwrSaveAtIvOffline = (request->arg("disp_pwr") == "on");
@@ -674,10 +719,6 @@ class Web {
             AsyncWebServerResponse *response = beginResponse(request, 200, F("text/html; charset=UTF-8"), about_html, about_html_len);
             response->addHeader(F("Content-Encoding"), "gzip");
             response->addHeader(F("content-type"), "text/html; charset=UTF-8");
-            if(request->hasParam("v")) {
-                response->addHeader(F("Cache-Control"), F("max-age=604800"));
-            }
-
             request->send(response);
         }
 
@@ -687,9 +728,11 @@ class Web {
             request->send(response);
         }
 
+        #if !defined(DISABLE_WEBSERIAL)
         void onSerial(AsyncWebServerRequest *request) {
             getPage(request, PROT_MASK_SERIAL, serial_html, serial_html_len);
         }
+        #endif /*DISABLE_WEBSERIAL*/
 
         void onSystem(AsyncWebServerRequest *request) {
             getPage(request, PROT_MASK_SYSTEM, system_html, system_html_len);
@@ -984,16 +1027,20 @@ class Web {
 #endif
     private:
         AsyncWebServer mWeb;
+        #if !defined(DISABLE_WEBSERIAL)
         AsyncEventSource mEvts;
+        #endif /*DISABLE_WEBSERIAL*/
         IApp *mApp = nullptr;
         HMSYSTEM *mSys = nullptr;
 
         settings_t *mConfig = nullptr;
 
+        #if !defined(DISABLE_WEBSERIAL)
         bool mSerialAddTime = true;
         char *mSerialBuf = nullptr;
         uint16_t mSerialBufFill = 0;
         bool mSerialClientConnnected = false;
+        #endif /*DISABLE_WEBSERIAL*/
 
         File mUploadFp;
         bool mUploadFail = false;
