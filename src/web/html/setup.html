@@ -283,7 +283,11 @@
                             </div>
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-3 my-2">{#SUNSPEC_MAX_CLIENTS}</div>
+                                <!--IF_ESP32-->
                                 <div class="col-12 col-sm-9"><input type="number" name="ssMaxCl" min="1" max="4"/></div>
+                                <!--ELSE-->
+                                <div class="col-12 col-sm-9"><input type="number" name="ssMaxCl" min="1" max="2"/></div>
+                                <!--ENDIF_ESP32-->
                             </div>
                             <div class="row mb-3">
                                 <div class="col-12 col-sm-3 my-2">{#SUNSPEC_ALLOW}</div>

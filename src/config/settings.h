@@ -219,6 +219,12 @@ typedef struct {
 
 #if defined(ENABLE_SUNSPEC)
 #define SUNSPEC_ALLOW_LEN   80
+// ESP8266: lwIP has only 5 TCP connections, shared with web UI and MQTT
+#if defined(ESP32)
+    #define SUNSPEC_MAX_CLIENTS     4
+#else
+    #define SUNSPEC_MAX_CLIENTS     2
+#endif
 typedef struct {
     bool enabled;
     uint16_t port;
@@ -848,6 +854,8 @@ class settings {
                     getVal<uint8_t>(ss, F("mode"), &mCfg.plugin.sunspec.mode);
                     getVal<uint8_t>(ss, F("unit"), &mCfg.plugin.sunspec.unitId);
                     getVal<uint8_t>(ss, F("maxCl"), &mCfg.plugin.sunspec.maxClients);
+                    if((0 == mCfg.plugin.sunspec.maxClients) || (mCfg.plugin.sunspec.maxClients > SUNSPEC_MAX_CLIENTS))
+                        mCfg.plugin.sunspec.maxClients = SUNSPEC_MAX_CLIENTS;
                     getChar(ss, F("allow"), mCfg.plugin.sunspec.allow, SUNSPEC_ALLOW_LEN);
                 }
                 #endif

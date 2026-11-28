@@ -83,7 +83,16 @@ class SunSpec {
             if(!mCfg->enabled || mStarted)
                 return;
             mStarted = true;
-            mServer.begin(mCfg->port, mCfg->maxClients, mCfg->allow,
+
+            // serial of the combined device, built once (no String on each request)
+            String mac = mApp->getMac();
+            mac.replace(":", "");
+            snprintf(mSerial, sizeof(mSerial), "AHOY%s", mac.c_str());
+
+            uint8_t maxCl = mCfg->maxClients;
+            if(maxCl > SUNSPEC_MAX_CLIENTS)
+                maxCl = SUNSPEC_MAX_CLIENTS;
+            mServer.begin(mCfg->port, maxCl, mCfg->allow,
                 [this](uint8_t unitId, uint16_t addr, uint16_t cnt, uint16_t *dst) -> uint8_t {
                     return onRead(unitId, addr, cnt, dst);
                 });
@@ -606,14 +615,11 @@ class SunSpec {
             else if(standby)
                 t.st = SS_ST_STANDBY;
 
-            char sn[17], md[33];
-            String mac = mApp->getMac();
-            mac.replace(":", "");
-            snprintf(sn, sizeof(sn), "AHOY%s", mac.c_str());
+            char md[33];
             snprintf(md, sizeof(md), "%s", mConfig->sys.deviceName);
 
             uint16_t pos = putHeader();
-            pos = putCommon(pos, "AhoyDTU", md, "total", mApp->getVersion(), sn, mCfg->unitId);
+            pos = putCommon(pos, "AhoyDTU", md, "total", mApp->getVersion(), mSerial, mCfg->unitId);
             pos = putInverter(pos, &t);
             #if defined(SUNSPEC_MODEL_120)
             pos = putNameplate(pos, wRtg);
@@ -627,6 +633,7 @@ class SunSpec {
         settings_t *mConfig = nullptr;
         cfgSunSpec_t *mCfg = nullptr;
         bool mStarted = false;
+        char mSerial[17] = {0}; // "AHOY" + MAC without colons, set once in begin()
 
         ModbusTcpServer mServer;
         // built on each request, all AsyncTCP callbacks are serialized

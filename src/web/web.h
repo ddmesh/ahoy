@@ -656,7 +656,7 @@ class Web {
             }
             if (request->arg("ssMaxCl") != "") {
                 int maxCl = request->arg("ssMaxCl").toInt();
-                if ((maxCl >= 1) && (maxCl <= 4))
+                if ((maxCl >= 1) && (maxCl <= SUNSPEC_MAX_CLIENTS))
                     mConfig->plugin.sunspec.maxClients = maxCl;
             }
             request->arg("ssAllow").toCharArray(mConfig->plugin.sunspec.allow, SUNSPEC_ALLOW_LEN);

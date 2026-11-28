@@ -46,7 +46,7 @@ Settings → **SunSpec / Modbus TCP**:
 | Mode | Combined | **Combined**: one device with the totals of the whole system. **Separate**: one device per inverter |
 | Port | 502 | TCP port |
 | Unit ID (combined mode) | 126 | Modbus unit ID of the combined device (1-247) |
-| Max. connections | 2 | Simultaneous clients (1-4). Extra connections are closed |
+| Max. connections | 2 | Simultaneous clients (ESP8266: 1-2, ESP32: 1-4). Extra connections are closed. ESP8266 has only 5 TCP connections for web UI, MQTT and Modbus |
 | Allowed clients | empty (all) | Up to 4 entries, IP or network in CIDR form, comma separated, e.g. `192.168.1.10, 192.168.2.0/24` |
 
 Changes take effect after a **reboot**.
