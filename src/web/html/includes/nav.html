@@ -1,25 +1,28 @@
 <div class="topnav">
-    <a href="/?v={#VERSION}" class="title">AhoyDTU</a>
+    <a href="/" class="title">AhoyDTU</a>
     <a href="javascript:void(0);" class="icon" onclick="topnav()">
         <span></span>
         <span></span>
         <span></span>
     </a>
     <div id="topnav" class="mobile">
-        <a data-path="/live" data-prot="1" href="/live?v={#VERSION}">{#NAV_LIVE}</a>
+        <a data-path="/live" data-prot="1" href="/live">{#NAV_LIVE}</a>
         <!--IF_ENABLE_HISTORY-->
-        <a data-path="/history" data-prot="6" href="/history?v={#VERSION}">{#NAV_HISTORY}</a>
+        <a data-path="/history" data-prot="6" href="/history">{#NAV_HISTORY}</a>
         <!--ENDIF_ENABLE_HISTORY-->
-        <a data-path="/serial" data-prot="2" href="/serial?v={#VERSION}">{#NAV_WEBSERIAL}</a>
-        <a data-path="/setup" data-prot="3" href="/setup?v={#VERSION}">{#NAV_SETTINGS}</a>
+        <!--IF_DISABLE_WEBSERIAL-->
+        <!--ELSE-->
+        <a data-path="/serial" data-prot="2" href="/serial">{#NAV_WEBSERIAL}</a>
+        <!--ENDIF_DISABLE_WEBSERIAL-->
+        <a data-path="/setup" data-prot="3" href="/setup">{#NAV_SETTINGS}</a>
         <span class="separator"></span>
-        <a data-path="/update" data-prot="4" href="/update?v={#VERSION}">Update</a>
-        <a data-path="/system" data-prot="5" href="/system?v={#VERSION}">System</a>
+        <a data-path="/update" data-prot="4" href="/update">Update</a>
+        <a data-path="/system" data-prot="5" href="/system">System</a>
         <span class="separator"></span>
         <a href="/api" target="_blank">REST API</a>
         <a href="https://docs.ahoydtu.de" target="_blank">{#NAV_DOCUMENTATION}</a>
         <a href="https://ahoydtu.de" target="_blank">Website</a>
-        <a data-path="/about" href="/about?v={#VERSION}">{#NAV_ABOUT}</a>
+        <a data-path="/about" href="/about">{#NAV_ABOUT}</a>
         <a id="navCstLnk" href="#" class="hide" target="_blank">Custom Link</a>
         <span class="separator"></span>
         <a data-auth="login" class="hide" href="/login">Login</a>

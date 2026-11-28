@@ -14,7 +14,12 @@
             var v;
             var found = false;
             var c = document.getElementById("con");
-            var redirIp = "http://192.168.4.1/index"
+            var redirIp = "/index"
+
+            // no station IP: "0.0.0.0" or "(IP unset)" (ESP8266 core)
+            function validIp(ip) {
+                return (typeof ip === "string") && /^\d{1,3}(\.\d{1,3}){3}$/.test(ip) && ("0.0.0.0" != ip)
+            }
 
             /*IF_ESP32*/
             var pinList = [
@@ -239,7 +244,8 @@
             }
 
             function printIp(obj) {
-                if("0.0.0.0" != obj.ip) {
+                if(validIp(obj.ip)) {
+                    redirIp = "http://" + obj.ip + "/index"
                     clearInterval(v)
                     setHide("btn", false)
                     document.getElementById("state").innerHTML = "{#NETWORK_SUCCESS}" + obj.ip
@@ -287,7 +293,7 @@
                         e.replaceChildren(...a)
                     }
 
-                    if("0.0.0.0" != obj.ip)
+                    if(validIp(obj.ip))
                         redirIp = "http://" + obj.ip + "/index"
                 }
 

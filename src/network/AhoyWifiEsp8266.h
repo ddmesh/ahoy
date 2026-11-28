@@ -89,8 +89,17 @@ class AhoyWifi : public AhoyNetwork {
                     break;
 
                 case NetworkState::GOT_IP:
-                    if(!mConnected) {
+                    // the connection attempt is finished, otherwise a network
+                    // scan (e.g. from the setup wizard) disconnects the station
+                    mWifiConnecting = false;
+
+                    // retry to disable the AP on each tick: disable() refuses as
+                    // long as a client is connected to the AP. Disabling it only
+                    // once left the AP (and therefore the setup wizard) active
+                    if(mAp.isEnabled())
                         mAp.disable();
+
+                    if(!mConnected) {
                         mConnected = true;
                         ah::welcome(WiFi.localIP().toString(), F("Station"));
                         MDNS.begin(mConfig->sys.deviceName);

@@ -139,7 +139,9 @@ function markActiveNav() {
 function navFallback(retry) {
     if(navDone || (retry <= 0))
         return;
-    getAjax("/api/generic", parseNav);
+    // lowMemoryNav: a menu answer must not remove the low memory hint,
+    // retry 0: this function already retries, avoid parallel retry chains
+    getAjax("/api/generic", lowMemoryNav, "GET", null, 0);
     setTimeout(() => { navFallback(retry - 1) }, 3000);
 }
 
@@ -202,7 +204,7 @@ function toggle(id, cl="hide") {
         e.classList.remove(cl);
 }
 
-function getAjax(url, ptr, method="GET", json=null) {
+function getAjax(url, ptr, method="GET", json=null, retry=3) {
     var xhr = new XMLHttpRequest();
     if(xhr != null) {
        xhr.open(method, url, true);
@@ -213,7 +215,20 @@ function getAjax(url, ptr, method="GET", json=null) {
     }
     function p() {
         if(xhr.readyState == 4) {
-            if((200 != xhr.status) || (null == ptr))
+            if(503 == xhr.status) { // ESP low on memory, request was refused
+                if("GET" == method) {
+                    if(retry > 0)
+                        setTimeout(() => { getAjax(url, ptr, method, json, retry - 1) }, 1000);
+                    else
+                        lowMemory(url);
+                }
+                return;
+            }
+            if(lowMemoryNav != ptr)
+                lowMemoryHide();
+            // POST: error answers (e.g. 413 "too large") are JSON with
+            // success/error and are shown by the callback
+            if((null == ptr) || ((200 != xhr.status) && ("POST" != method)))
                 return;
             var obj = null;
             try {
@@ -229,6 +244,32 @@ function getAjax(url, ptr, method="GET", json=null) {
             ptr(obj);
         }
     }
+}
+
+// all retries of a GET request were refused (ESP low on memory):
+// show a hint and load at least the menu (small answer)
+function lowMemory(url) {
+    var e = document.getElementById("lowMemory");
+    if(null == e) {
+        e = ml("div", {id: "lowMemory", style: "padding: 10px; background-color: #c00; color: #fff;"},
+            "ESP low on memory, page data could not be loaded. Please reload the page.");
+        var c = document.getElementById("content"); // below fixed menu
+        if(null == c)
+            c = document.body;
+        c.insertBefore(e, c.firstChild);
+    }
+    if((url != "/api/generic") && !navDone)
+        getAjax("/api/generic", lowMemoryNav);
+}
+
+function lowMemoryNav(obj) {
+    parseNav(obj);
+}
+
+function lowMemoryHide() {
+    var e = document.getElementById("lowMemory");
+    if(null != e)
+        e.remove();
 }
 
 const getJSON = async url => {
